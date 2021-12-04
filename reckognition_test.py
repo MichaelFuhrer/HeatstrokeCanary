@@ -1,7 +1,6 @@
 from HeatstrokeCanary.lib.rekognition_image_detection import RekognitionImage
 import boto3
 
-
 def main():
     rekognition_client = boto3.client('rekognition')
     img = "testimgs/dog01.jpg"

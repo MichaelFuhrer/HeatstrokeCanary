@@ -18,7 +18,7 @@ import boto3
 from botocore.exceptions import ClientError
 import requests
 
-from rekognition_objects import (
+from .rekognition_objects import (
     RekognitionFace, RekognitionCelebrity, RekognitionLabel,
     RekognitionModerationLabel, RekognitionText, show_bounding_boxes, show_polygons)
 
