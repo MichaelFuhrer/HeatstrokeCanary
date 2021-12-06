@@ -2,23 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>HeatstrokeCanary Server Login</title>
+    <title>Heatstroke Canary Sign-Up</title>
     <link rel="stylesheet" href="../static/styles/notification_styling.css">
 </head>
 <body>
-    <h1>HeatstrokeCanary Server Login</h1>
+    <h1>Heatstroke Canary Sign-Up</h1>
 
     <p class={{notification_style}}>{{notification_text}}</p>
 
-    <form action="/login" method="post">
+    <form action="/signup" method="post">
         <label for="username">Username:</label>
         <input type="text" id="username" name="username"><br><br>
         <label for="password">Password:</label>
         <input type="password" id="password" name="password"><br><br>
+        <label for="device_id">Device ID:</label>
+        <input type="text" id="device_id" name="device_id"><br><br>
+        <label for="phone_number">Phone Number:</label>
+        <input type="text" id="phone_number" name="phone_number"><br><br>
         <input type="submit" value="Submit">
-    </form>
-    <form action="/signup">
-        <input type="submit" value="Sign-up">
     </form>
 </body>
 </html>

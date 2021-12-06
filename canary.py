@@ -43,6 +43,9 @@ def check_camera():
     os.remove(image_file)
     return None
 
+# Canary -> Server: temperature & photo
+# Temperature -- userset temp threshold
+# Photo -> Rekognition -- userset boolean values
 
 def main():
     mm.calibrate()

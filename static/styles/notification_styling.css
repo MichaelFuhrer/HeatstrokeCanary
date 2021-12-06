@@ -1,0 +1,22 @@
+p.hide
+{
+    display: none;
+}
+
+p.error
+{
+    background-color: darkred;
+    color: white;
+}
+
+p.alert
+{
+    background-color: yellow;
+    color: sienna;
+}
+
+p.success
+{
+    background-color: green;
+    color: white;
+}
