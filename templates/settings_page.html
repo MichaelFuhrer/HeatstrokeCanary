@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Heatstroke Canary Settings</title>
+</head>
+<body>
+    <h1>Heatstroke Canary Settings for {{username}}</h1>
+    <p>Device ID: {{device_id}}</p>
+    <form action="/settings" method="post">
+        <p>Send alerts for:</p>
+        <label for="baby_alert">Children:</label>
+        <input type="checkbox" id="baby_alert" name="baby_alert">
+        <label for="pet_alert">Pets:</label>
+        <input type="checkbox" id="pet_alert" name="pet_alert"><br><br>
+
+        <label for="phone_number">Phone number:</label>
+        <input type="text" id="phone_number" name="phone_number"><br><br>
+
+        <label for="temp_alert">Temperature alert threshold (°F):</label>
+        <input type="number" id="temp_alert" name="temp_alert" value="80"><br><br>
+
+        <input type="submit" value="Submit">
+    </form>
+</body>
+</html>
