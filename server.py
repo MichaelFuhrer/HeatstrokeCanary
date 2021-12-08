@@ -1,5 +1,6 @@
 from flask import Flask, request, render_template, redirect, make_response
 import pymongo
+import base64
 
 # Flask
 WEBAPP_PORT = 80
@@ -7,9 +8,29 @@ app = Flask("ServerPi")
 
 # MongoDB
 g_user_col = None
+g_event_col = None
 
 
 # ------------------- MongoDB - Events --------------------
+def setup_eventDB():
+    global g_event_col
+    event_db_client = pymongo.MongoClient("mongodb://localhost:27017/")
+    event_db = event_db_client["HeatstrokeCanary"]
+    g_event_col = event_db["events"]
+
+
+def record_event(canary_id, timestamp, temperature, image):
+    new_event = {
+
+        "canary_id": canary_id,
+        "timestamp": timestamp,
+        "temperature": temperature,
+        "image": image
+    }
+
+    g_event_col.insert_one(new_event)
+    return True
+
 
 # ---------------- MongoDB - Authentication ---------------
 
@@ -69,6 +90,29 @@ def get_user_value(username, setting):
 
 
 # ---------------------- Canary Comm ----------------------
+
+@app.route("/post", methods=['POST'])
+def post():
+    # Can remove later, just displaying info
+    print(request.form.get('canary_id'))
+    print(request.form.get('timestamp'))
+    print(request.form.get('temperature'))
+    print(request.files.get('image'))
+
+    canary_id = request.form.get('canary_id')
+    timestamp = request.form['timestamp']
+    temperature = request.form['temperature']
+    image = request.files.get('image')
+
+    filename = image.filename
+
+    with open(filename, 'rb') as imageFile:
+        img_str = base64.b64encode(imageFile.read())
+
+    record_event(canary_id, timestamp, temperature, img_str)
+
+    return "Event successfully recorded"
+
 
 # ------------------------ WEB-GUI ------------------------
 
@@ -182,6 +226,7 @@ def settings_post():
 
 
 def main():
+    setup_eventDB()
     setup_userDB()
     app.run(host="0.0.0.0", port=WEBAPP_PORT)
 
