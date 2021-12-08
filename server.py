@@ -4,44 +4,64 @@ import boto3
 import pymongo
 import base64
 import keys
+import json
+from datetime import datetime  # For console print timestamps
+from twilio.rest import Client
+
 
 # Flask
-WEBAPP_PORT = 80
+port = 80
 app = Flask("ServerPi")
 
 # MongoDB
 g_user_col = None
 g_event_col = None
 
-# Rekognition client and labels
+# Rekognition client and alert labels
 rekognition_client = boto3.client('rekognition',
-                                  aws_access_key_id=keys.access_id,
-                                  aws_secret_access_key=keys.secret_id,
+                                  aws_access_key_id=keys.aws_access_id,
+                                  aws_secret_access_key=keys.aws_secret_id,
                                   region_name='us-east-1')
 baby_alert_labels = ['Baby', 'Person']
 pet_alert_labels = ['Dog', 'Pet']
 
+min_temp_alert = 80
+
+
+def get_timestamp():
+    return datetime.now().strftime("%H:%M:%S")
+
 
 # ------------------- Server Functions --------------------
-def check_photo(username, image_filename):
-    # Use photograph to determine whether there is a baby or dog in photo
-    rekognition = RekognitionImage.from_file(image_filename, rekognition_client)
-    labels = rekognition.detect_labels(10)
-    label_dict = {label.name: label.confidence for label in labels}
-    print(label_dict)
 
-    baby_alert = get_user_value(username, 'baby_alert')
-    pet_alert = get_user_value(username, 'pet_alert')
+def check_event(username, temperature, labels):
+    baby_alert = False
+    pet_alert = False
 
-    for label in label_dict:
-        if (baby_alert and label in baby_alert_labels) or (pet_alert and label in pet_alert_labels):
-            return label, label_dict[label]
+    for label in labels:
+        if not baby_alert and label[0] in baby_alert_labels:
+            baby_alert = True
+        if not pet_alert and label[0] in pet_alert_labels:
+            pet_alert = True
 
-    return None, None
+    if temperature > get_user_value(username, "temp_alert"):
+        if (baby_alert and get_user_value(username, 'baby_alert')) or (
+                pet_alert and get_user_value(username, 'pet_alert')):
+            return True
+    return False
 
 
-def send_notification():
-    pass  # todo
+def send_notification(username, temperature, labels):
+    user_phone = get_user_value(username, 'phone_number')
+    print(f'[{get_timestamp()}] Sending notification to {username} @ {user_phone}')
+
+    client = Client(keys.twilio_sid, keys.twilio_auth)
+
+    message = f"Alert {username}! A temperature of {temperature}°F was recorded in your vehicle while a " \
+              f"{labels[0][0]} (Confidence of {labels[0][1]}%) is inside. Please take appropriate action to ensure " \
+              f"they are safe."
+
+    client.messages.create(body=message, from_=keys.twilio_phone, to=user_phone)
 
 
 # ------------------- MongoDB - Events --------------------
@@ -52,12 +72,12 @@ def setup_eventDB():
     g_event_col = event_db["events"]
 
 
-def record_event(canary_id, timestamp, temperature, image):
+def record_event(canary_id, timestamp, temperature, labels, image):
     new_event = {
-
         "canary_id": canary_id,
         "timestamp": timestamp,
         "temperature": temperature,
+        "labels": labels,
         "image": image
     }
 
@@ -122,27 +142,43 @@ def get_user_value(username, setting):
     return None
 
 
+def find_user(canary_id):
+    result = g_user_col.find_one({"device_id": canary_id})
+    if result is not None:
+        return result["username"]
+    return None
+
+
 # ---------------------- Canary Comm ----------------------
 
 @app.route("/post", methods=['POST'])
 def post():
-    # Can remove later, just displaying info
-    print(request.form.get('canary_id'))
-    print(request.form.get('timestamp'))
-    print(request.form.get('temperature'))
-    print(request.files.get('image'))
-
     canary_id = request.form.get('canary_id')
     timestamp = request.form['timestamp']
-    temperature = request.form['temperature']
+    temperature = int(request.form['temperature'])
+    relevant_labels = json.loads(request.form['labels'])
     image = request.files.get('image')
 
-    filename = image.filename
+    # Print out info
+    print(f'[{get_timestamp()}] Received post from {canary_id}:')
+    print(f'\t{timestamp}, {temperature}°F, {image.filename}')
+    print(f'\tRelevant labels:')
+    for entry in relevant_labels:
+        print(f'\t{entry}')
 
-    with open(filename, 'rb') as imageFile:
-        img_str = base64.b64encode(imageFile.read())
+    # Save image locally
+    image.save(f'./captures/{image.filename}')
 
-    record_event(canary_id, timestamp, temperature, img_str)
+    username = find_user(canary_id)
+    if username is None:
+        print(f'[{get_timestamp()}] Device ID was not recognized')
+        return "Device ID not recognized", 400  # Bad request
+
+    record_event(canary_id, timestamp, temperature, relevant_labels, image.filename)
+    if check_event(username, temperature, relevant_labels):
+        send_notification(username, temperature, relevant_labels)
+        return "Event processed, alert sent", 200  # POST Okay
+    return "Event processed", 200  # POST Okay
 
 
 # ------------------------ WEB-GUI ------------------------
@@ -248,9 +284,12 @@ def settings_post():
     baby_alert = request.form.get('baby_alert') == 'on'
     pet_alert = request.form.get('pet_alert') == 'on'
     phone_number = request.form['phone_number']
-    temp_alert = request.form['temp_alert']
+    temp_alert = int(request.form['temp_alert'])
 
-    if update_user(username, baby_alert, pet_alert, phone_number, temp_alert):
+    if temp_alert < min_temp_alert and update_user(username, baby_alert, pet_alert, phone_number, min_temp_alert):
+        return make_settings_resp(username, password, "alert",
+                                  f"Changes processed. Attention: Minimum alert temperature is {min_temp_alert}°F.")
+    elif update_user(username, baby_alert, pet_alert, phone_number, temp_alert):
         return make_settings_resp(username, password, "success", "Changes processed.")
     else:
         return make_settings_resp(username, password, "error", "An error occurred.")
@@ -259,7 +298,7 @@ def settings_post():
 def main():
     setup_eventDB()
     setup_userDB()
-    app.run(host="0.0.0.0", port=WEBAPP_PORT)
+    app.run(host="0.0.0.0", port=port)
 
 
 if __name__ == '__main__':
