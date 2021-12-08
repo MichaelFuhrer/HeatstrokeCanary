@@ -111,7 +111,6 @@ def post():
 
     record_event(canary_id, timestamp, temperature, img_str)
 
-    return "Event successfully recorded"
 
 
 # ------------------------ WEB-GUI ------------------------
