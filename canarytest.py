@@ -4,7 +4,7 @@ import datetime
 from flask import Flask, request
 
 TEMP_HOST = 'localhost'
-WEBAPP_PORT = 80
+WEBAPP_PORT = '80'
 
 
 def main():
