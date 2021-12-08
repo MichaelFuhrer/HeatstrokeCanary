@@ -1,6 +1,9 @@
 from flask import Flask, request, render_template, redirect, make_response
+from lib.rekognition.rekognition_image_detection import RekognitionImage
+import boto3
 import pymongo
 import base64
+import keys
 
 # Flask
 WEBAPP_PORT = 80
@@ -9,6 +12,36 @@ app = Flask("ServerPi")
 # MongoDB
 g_user_col = None
 g_event_col = None
+
+# Rekognition client and labels
+rekognition_client = boto3.client('rekognition',
+                                  aws_access_key_id=keys.access_id,
+                                  aws_secret_access_key=keys.secret_id,
+                                  region_name='us-east-1')
+baby_alert_labels = ['Baby', 'Person']
+pet_alert_labels = ['Dog', 'Pet']
+
+
+# ------------------- Server Functions --------------------
+def check_photo(username, image_filename):
+    # Use photograph to determine whether there is a baby or dog in photo
+    rekognition = RekognitionImage.from_file(image_filename, rekognition_client)
+    labels = rekognition.detect_labels(10)
+    label_dict = {label.name: label.confidence for label in labels}
+    print(label_dict)
+
+    baby_alert = get_user_value(username, 'baby_alert')
+    pet_alert = get_user_value(username, 'pet_alert')
+
+    for label in label_dict:
+        if (baby_alert and label in baby_alert_labels) or (pet_alert and label in pet_alert_labels):
+            return label, label_dict[label]
+
+    return None, None
+
+
+def send_notification():
+    pass  # todo
 
 
 # ------------------- MongoDB - Events --------------------
@@ -110,7 +143,6 @@ def post():
         img_str = base64.b64encode(imageFile.read())
 
     record_event(canary_id, timestamp, temperature, img_str)
-
 
 
 # ------------------------ WEB-GUI ------------------------
