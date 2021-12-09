@@ -8,6 +8,7 @@ from lib.rekognition.rekognition_image_detection import RekognitionImage
 import boto3
 import json
 from twilio.rest import Client
+import temp_reader
 
 # Rekognition client and alert labels
 rekognition_client = boto3.client('rekognition',
@@ -118,8 +119,8 @@ def main():
         mm.start(on_parked=parked_event, on_moving=moving_event)
         while True:
             if mm.is_parked():
-                # Get Temperature todo
-                temp = 85
+                # Get Temperature
+                temp = temp_reader.get_temp()
                 print(f'[{get_timestamp()}] Temperature: {temp}°F')
                 # Take photo and check for labels
                 img_file = take_photo()
