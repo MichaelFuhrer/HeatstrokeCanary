@@ -29,7 +29,7 @@ def get_timestamp():
     return datetime.now().strftime("%H:%M:%S")
 
 
-def send_notification():
+def send_emergency_sms():
     client = Client(keys.twilio_sid, keys.twilio_auth)
     message = f"EMERGENCY CONTACT MESSAGE. DEVICE ID {keys.canary_id}"
     client.messages.create(body=message, from_=keys.twilio_phone, to=keys.emergency_contact)
@@ -88,7 +88,7 @@ def send_data(server_addr, temp, labels, photo):
 
     while attempts < max_attempts:
         try:
-            r = requests.post(url, data=payload, files=image)
+            r = requests.post(url, data=payload, files=image, timeout=2)
             print(f"[{get_timestamp()}] Event successfully sent to Server")
             if r.text.find('alert') != -1:
                 # Server notified user, sleep for 10 min to not spam server+user
@@ -101,13 +101,12 @@ def send_data(server_addr, temp, labels, photo):
             if attempts == max_attempts:
                 # contact emergency services
                 print("Max attempts reached. Contacting emergency services...")
-                send_notification()
+                send_emergency_sms()
                 # Sleep for 10 min
                 print(f'[{get_timestamp()}] Sleeping...')
                 time.sleep(600)
             else:
-                time.sleep(5)  # Sleep 5 seconds, then try sending data again
-                time.sleep(5)  # Sleep 5 seconds, then try sending data again
+                time.sleep(3)  # Sleep 3 seconds, then try sending data again
                 print("Retrying...")
     return False
 
