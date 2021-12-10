@@ -1,8 +1,5 @@
 from flask import Flask, request, render_template, redirect, make_response
-from lib.rekognition.rekognition_image_detection import RekognitionImage
-import boto3
 import pymongo
-import base64
 import keys
 import json
 from datetime import datetime  # For console print timestamps
@@ -17,11 +14,6 @@ app = Flask("ServerPi")
 g_user_col = None
 g_event_col = None
 
-# Rekognition client and alert labels
-rekognition_client = boto3.client('rekognition',
-                                  aws_access_key_id=keys.aws_access_id,
-                                  aws_secret_access_key=keys.aws_secret_id,
-                                  region_name='us-east-1')
 baby_alert_labels = ['Baby', 'Person']
 pet_alert_labels = ['Dog', 'Pet']
 

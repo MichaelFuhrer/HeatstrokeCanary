@@ -90,7 +90,7 @@ def send_data(server_addr, temp, labels, photo):
 
     while attempts < max_attempts:
         try:
-            r = requests.post(url, data=payload, files=image, timeout=2)
+            r = requests.post(url, data=payload, files=image, timeout=5)
             print(f"[{get_timestamp()}] Event successfully sent to Server")
             if r.text.find('alert') != -1:
                 # Server notified user, sleep for 10 min to not spam server+user
