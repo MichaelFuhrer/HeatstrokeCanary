@@ -25,7 +25,7 @@ rekognition_client = boto3.client('rekognition',
 baby_alert_labels = ['Baby', 'Person']
 pet_alert_labels = ['Dog', 'Pet']
 
-min_temp_alert = 80
+min_temp_alert = 60
 
 
 def get_timestamp():
@@ -155,7 +155,7 @@ def find_user(canary_id):
 def post():
     canary_id = request.form.get('canary_id')
     timestamp = request.form['timestamp']
-    temperature = int(request.form['temperature'])
+    temperature = float(request.form['temperature'])
     relevant_labels = json.loads(request.form['labels'])
     image = request.files.get('image')
 

@@ -19,7 +19,8 @@ rekognition_client = boto3.client('rekognition',
 baby_alert_labels = ['Baby', 'Person']
 pet_alert_labels = ['Dog', 'Pet']
 
-min_temp_alert = 80
+min_temp_alert = 60
+min_temp_emergency = 80
 
 mm = motion_monitor()
 camera = PiCamera()
@@ -99,13 +100,15 @@ def send_data(server_addr, temp, labels, photo):
         except requests.exceptions.ConnectionError as e:
             print(f'[{get_timestamp()}] Failed to connect to ServerPi. ', end='')
             attempts += 1
-            if attempts == max_attempts:
+            if attempts == max_attempts and temp >= min_temp_emergency:
                 # contact emergency services
                 print("Max attempts reached. Contacting emergency services...")
                 send_emergency_sms()
                 # Sleep for 10 min
                 print(f'[{get_timestamp()}] Sleeping...')
                 time.sleep(600)
+            elif attempts == max_attempts:
+                print("Max attempts reached, but temperature reading does not constitute an emergency.")
             else:
                 time.sleep(3)  # Sleep 3 seconds, then try sending data again
                 print("Retrying...")
