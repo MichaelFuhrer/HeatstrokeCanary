@@ -51,3 +51,7 @@ The ServerPi, which can be executed via `python server.py`, requires the followi
 * <b>pymongo==3.4.0</b>: Used to implement the user-preference and event databases.
 * <b>json</b>: Used to interpret CanaryPi HTTP posts.
 * <b>twilio</b>: Used to send SMS notifications to users.
+
+#### Note
+
+Please note that you will need to update keys.py with your own Twilio and AWS API keys to get this running on your pi. Our keys visible in previous commits have been safely rotated.
